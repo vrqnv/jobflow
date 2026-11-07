@@ -1,6 +1,18 @@
 spring:
   application:
     name: worker-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobflow
+    username: jobflow
+    password: jobflow
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:

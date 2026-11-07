@@ -44,7 +44,7 @@ public class JobService {
             JobEventRepository jobEventRepository,
             OutboxRepository outboxRepository,
             ObjectMapper objectMapper,
-            @Value("${jobflow.jobs.max-attempts:3}") int maxAttempts
+            @Value("${jobflow.jobs.max-attempts:2}") int maxAttempts
     ) {
         this.jobRepository = jobRepository;
         this.jobEventRepository = jobEventRepository;

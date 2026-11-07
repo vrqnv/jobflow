@@ -28,4 +28,4 @@ server:
 
 jobflow:
   jobs:
-    max-attempts: ${JOBFLOW_MAX_ATTEMPTS:3}
+    max-attempts: ${JOBFLOW_MAX_ATTEMPTS:2}
