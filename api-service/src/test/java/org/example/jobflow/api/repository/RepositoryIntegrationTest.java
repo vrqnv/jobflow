@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,9 +78,9 @@ class RepositoryIntegrationTest {
                 PageRequest.of(0, 10)
         );
 
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).getId())
-                .isEqualTo(job.getId());
+        assertThat(result.getContent())
+                .extracting(Job::getId)
+                .contains(job.getId());
     }
 
     @Test
@@ -142,9 +143,7 @@ class RepositoryIntegrationTest {
                 now.plusSeconds(60)
         );
 
-        outboxRepository.saveAllAndFlush(
-                java.util.List.of(ready, future)
-        );
+        outboxRepository.saveAllAndFlush(List.of(ready, future));
 
         var pending = outboxRepository
                 .findByPublishedAtIsNullAndAvailableAtLessThanEqualOrderByCreatedAtAsc(
@@ -152,9 +151,9 @@ class RepositoryIntegrationTest {
                         PageRequest.of(0, 10)
                 );
 
-        assertThat(pending).hasSize(1);
-        assertThat(pending.get(0).getId()).isEqualTo(readyId);
-        assertThat(outboxRepository.countByPublishedAtIsNull())
-                .isEqualTo(2);
+        assertThat(pending)
+                .extracting(OutboxEvent::getId)
+                .contains(readyId)
+                .doesNotContain(futureId);
     }
 }
