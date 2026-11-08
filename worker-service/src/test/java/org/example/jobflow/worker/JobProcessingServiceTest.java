@@ -67,4 +67,52 @@ class JobProcessingServiceTest {
         verify(jobStateService, never()).handleFailure(any(), any());
         verifyNoInteractions(urlCheckService);
     }
+
+    @Test
+    void shouldCheckUrl() throws Exception {
+        UUID jobId = UUID.randomUUID();
+
+        JobRepository jobRepository = mock(JobRepository.class);
+        JobStateService jobStateService = mock(JobStateService.class);
+        UrlCheckService urlCheckService = mock(UrlCheckService.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        Job job = mock(Job.class);
+
+        JsonNode payload = objectMapper.readTree("""
+            {
+                "url": "https://example.com"
+            }
+            """);
+
+        when(jobStateService.startProcessing(jobId)).thenReturn(true);
+        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+        when(job.getType()).thenReturn(JobType.CHECK_URL);
+        when(job.getPayload()).thenReturn(payload);
+        when(urlCheckService.check("https://example.com")).thenReturn(200);
+
+        JobProcessingService service = new JobProcessingService(
+                jobRepository,
+                jobStateService,
+                urlCheckService,
+                objectMapper
+        );
+
+        service.process(jobId);
+
+        var resultCaptor =
+                org.mockito.ArgumentCaptor.forClass(JsonNode.class);
+
+        verify(jobStateService).complete(
+                eq(jobId),
+                resultCaptor.capture()
+        );
+
+        JsonNode result = resultCaptor.getValue();
+
+        assertEquals("https://example.com", result.path("url").asText());
+        assertEquals(200, result.path("statusCode").asInt());
+
+        verify(jobStateService, never()).handleFailure(any(), any());
+    }
 }
