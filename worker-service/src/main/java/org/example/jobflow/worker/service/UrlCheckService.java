@@ -1,3 +1,4 @@
+
 package org.example.jobflow.worker.service;
 
 import org.springframework.stereotype.Service;
@@ -21,18 +22,28 @@ public class UrlCheckService {
     public int check(String url) throws Exception {
         URI uri = URI.create(url);
 
-        if (!"http".equalsIgnoreCase(uri.getScheme())
-                && !"https".equalsIgnoreCase(uri.getScheme())) {
+        String scheme = uri.getScheme();
+        if (!"http".equalsIgnoreCase(scheme)
+                && !"https".equalsIgnoreCase(scheme)) {
             throw new IllegalArgumentException("Only HTTP and HTTPS URLs are allowed");
         }
 
-        if (uri.getHost() == null || uri.getUserInfo() != null) {
+        if (uri.getHost() == null || uri.getHost().isBlank()
+                || uri.getUserInfo() != null) {
             throw new IllegalArgumentException("Invalid URL");
+        }
+
+        int port = uri.getPort();
+        if (port != -1
+                && !(port == 80 && "http".equalsIgnoreCase(scheme))
+                && !(port == 443 && "https".equalsIgnoreCase(scheme))) {
+            throw new IllegalArgumentException("Only standard HTTP and HTTPS ports are allowed");
         }
 
         InetAddress[] addresses = InetAddress.getAllByName(uri.getHost());
 
-        if (addresses.length == 0 || Arrays.stream(addresses).anyMatch(this::isPrivateAddress)) {
+        if (addresses.length == 0
+                || Arrays.stream(addresses).anyMatch(this::isPrivateAddress)) {
             throw new IllegalArgumentException("URL points to a private or reserved address");
         }
 
