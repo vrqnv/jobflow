@@ -1,3 +1,4 @@
+
 package org.example.jobflow.worker.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -5,6 +6,7 @@ import org.example.jobflow.common.enums.JobType;
 import org.example.jobflow.worker.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -35,16 +37,32 @@ public class JobProcessingService {
         var job = jobRepository.findById(jobId).orElseThrow();
 
         try {
-            if (job.getType() != JobType.CHECK_URL) {
-                throw new IllegalArgumentException("Unsupported job type");
-            }
+            var result = switch (job.getType()) {
+                case CHECK_URL -> {
+                    String url = job.getPayload().path("url").asText();
+                    int statusCode = urlCheckService.check(url);
 
-            String url = job.getPayload().path("url").asText();
-            int statusCode = urlCheckService.check(url);
+                    var node = objectMapper.createObjectNode();
+                    node.put("url", url);
+                    node.put("statusCode", statusCode);
+                    yield node;
+                }
+                case GENERATE_REPORT -> {
+                    String reportName = job.getPayload()
+                            .path("reportName").asText();
 
-            var result = objectMapper.createObjectNode();
-            result.put("url", url);
-            result.put("statusCode", statusCode);
+                    int delaySeconds = job.getPayload()
+                            .path("delaySeconds").asInt(0);
+
+                    Thread.sleep(delaySeconds * 1000L);
+
+                    var node = objectMapper.createObjectNode();
+                    node.put("reportName", reportName);
+                    node.put("generatedAt", Instant.now().toString());
+                    node.put("status", "GENERATED");
+                    yield node;
+                }
+            };
 
             jobStateService.complete(jobId, result);
         } catch (Exception e) {
