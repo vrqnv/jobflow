@@ -38,9 +38,14 @@ public class JobStateService {
 
     @Transactional
     public boolean startProcessing(UUID jobId) {
-        Job job = jobRepository.findById(jobId).orElse(null);
+        Job job = jobRepository.findByIdForUpdate(jobId).orElse(null);
 
         if (job == null || job.getStatus() != JobStatus.QUEUED) {
+            return false;
+        }
+
+        if (job.getNextAttemptAt() != null
+                && job.getNextAttemptAt().isAfter(Instant.now())) {
             return false;
         }
 
